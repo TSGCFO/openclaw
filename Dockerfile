@@ -225,6 +225,12 @@ USER node
 #   - GET /healthz (liveness) and GET /readyz (readiness)
 #   - aliases: /health and /ready
 # For external access from host/ingress, override bind to "lan" and set auth.
+# Render sets PORT=8080; use it for both the gateway and health checks.
+# OPENCLAW_GATEWAY_PORT is read by the gateway as a fallback when --port is
+# not passed.  We keep the explicit --port flag as well so the intent is
+# visible in `docker inspect`.
+ENV OPENCLAW_GATEWAY_PORT=${PORT:-8080}
+
 HEALTHCHECK --interval=3m --timeout=10s --start-period=15s --retries=3 \
-  CMD node -e "fetch('http://127.0.0.1:18789/healthz').then((r)=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"
-CMD ["node", "openclaw.mjs", "gateway", "--allow-unconfigured"]
+  CMD node -e "fetch('http://127.0.0.1:' + (process.env.PORT || '8080') + '/healthz').then((r)=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"
+CMD ["node", "openclaw.mjs", "gateway", "--allow-unconfigured", "--bind", "lan", "--port", "8080"]
